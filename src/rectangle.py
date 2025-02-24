@@ -1,73 +1,64 @@
 #!/usr/bin/env python3
+
 import rospy
 from geometry_msgs.msg import Twist
-from std_srvs.srv import Empty
-
-def move_straight(pub, speed, distance, duration):
-    vel_msg = Twist()
-    vel_msg.linear.x = speed  # Move forward
-    vel_msg.angular.z = 0  # No rotation
-    
-    rate = rospy.Rate(10)  # 10 Hz (updates per second)
-    start_time = rospy.Time.now().to_sec()
-
-    while rospy.Time.now().to_sec() - start_time < duration:
-        pub.publish(vel_msg)
-        rate.sleep()
-
-    # Stop the turtle after moving
-    vel_msg.linear.x = 0
-    pub.publish(vel_msg)
-
-def rotate(pub, angle_speed, angle, duration):
-    vel_msg = Twist()
-    vel_msg.linear.x = 0  # No forward movement
-    vel_msg.angular.z = angle_speed  # Rotate
-
-    rate = rospy.Rate(10)
-    start_time = rospy.Time.now().to_sec()
-
-    while rospy.Time.now().to_sec() - start_time < duration:
-        pub.publish(vel_msg)
-        rate.sleep()
-
-    # Stop rotation
-    vel_msg.angular.z = 0
-    pub.publish(vel_msg)
+import time
+import math
 
 def draw_rectangle():
     rospy.init_node('turtle_rectangle', anonymous=True)
-    
-    # Publisher to send velocity commands
-    pub = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=10)
-    
-    # Wait for the clear service
-    rospy.wait_for_service('/clear')
-    clear_screen = rospy.ServiceProxy('/clear', Empty)
-    clear_screen()  # Clears background
-    
-    rospy.sleep(1)  # Small delay before starting
-    
-    speed = 2.0  # Turtle's movement speed
-    turn_speed = 1.57  # Turtle's turning speed (90 degrees = 1.57 rad/s)
-    
-    # Rectangle dimensions
-    width = 4.0
-    height = 2.0
-    
-    # Move in a rectangle (repeat for all four sides)
-    move_straight(pub, speed, width, width/speed)  # Move right
-    rotate(pub, turn_speed, 1.57, 1.0)  # Turn 90 degrees left
-    
-    move_straight(pub, speed, height, height/speed)  # Move up
-    rotate(pub, turn_speed, 1.57, 1.0)  # Turn 90 degrees left
-    
-    move_straight(pub, speed, width, width/speed)  # Move left
-    rotate(pub, turn_speed, 1.57, 1.0)  # Turn 90 degrees left
-    
-    move_straight(pub, speed, height, height/speed)  # Move down
-    
-    print("Rectangle drawing completed!")
+    publisher = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=10)
+    time.sleep(2)  # give time for the node to initialize
+
+    vel_msg = Twist()
+
+    for _ in range(2):  # repeat for 2 times 2 sides 
+
+        # moves straight ahead for 2 seconds at speed 5.0 
+        # long side of rectangle (5 units)
+        vel_msg.linear.x = 5.0
+        vel_msg.angular.z = 0.0 # ensures no prev rotation from other commands
+        publisher.publish(vel_msg)
+        time.sleep(2)  # move forward for 2 seconds
+
+        # stop for 0.5 before turning
+        # as if robot is still moving forward while turning
+        # might take a curved path instead of a sharp 90-degree turn
+        vel_msg.linear.x = 0.0
+        publisher.publish(vel_msg)
+        time.sleep(0.5)
+
+        # turn 90 degrees
+        vel_msg.angular.z = math.radians(90)
+        publisher.publish(vel_msg)
+        time.sleep(1.5)
+
+        # moves straight ahead for 2 seconds at speed 2.5 
+        # short side of rectangle (2.5 units)
+        vel_msg.linear.x = 2.5
+        vel_msg.angular.z = 0.0
+        publisher.publish(vel_msg)
+        time.sleep(2)
+
+        # stop for 0.5 before turning
+        vel_msg.linear.x = 0.0
+        publisher.publish(vel_msg)
+        time.sleep(0.5)
+
+        # turn 90 degrees
+        vel_msg.angular.z = math.radians(90)
+        publisher.publish(vel_msg)
+        time.sleep(1.5)
+
+        # stop turning
+        vel_msg.angular.z = 0.0
+        publisher.publish(vel_msg)
+        time.sleep(1)
+
+    # stop the turtle at the end
+    vel_msg.linear.x = 0.0
+    vel_msg.angular.z = 0.0
+    publisher.publish(vel_msg)
 
 if __name__ == '__main__':
     try:
